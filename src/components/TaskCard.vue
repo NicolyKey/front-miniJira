@@ -151,6 +151,9 @@
 </template>
 
 <script>
+import apiService from '../services/api.service.js'
+
+
 export default {
   name: 'TaskCard',
   props: {
@@ -176,7 +179,8 @@ export default {
         { title: 'Alta', value: 1 },
         { title: 'Média', value: 2 },
         { title: 'Baixa', value: 3 }
-      ]
+      ],
+      carregando: false
     }
   },
   computed: {
@@ -251,10 +255,35 @@ export default {
       }
     },
     
+    // async salvarEdicao() {
+    //   try {
+    //     await this.atualizarTarefaAPI(this.tarefaEditavel)
+    //     this.$emit('atualizar', this.tarefaEditavel)
+    //     this.dialogDetalhes = false
+        
+    //     this.$emit('show-snackbar', {
+    //       message: 'Tarefa atualizada com sucesso!',
+    //       color: 'success'
+    //     })
+    //   } catch (error) {
+    //     this.$emit('show-snackbar', {
+    //       message: 'Erro ao salvar tarefa: ' + error.message,
+    //       color: 'error'
+    //     })
+    //   }
+    // },
+    
     async salvarEdicao() {
+      this.carregando = true
       try {
-        await this.atualizarTarefaAPI(this.tarefaEditavel)
-        this.$emit('atualizar', this.tarefaEditavel)
+        // Chama o service para atualizar a tarefa
+        const tarefaAtualizada = await apiService.atualizarTarefa(
+          this.lista.id,
+          this.tarefaEditavel.idTarefa,
+          this.tarefaEditavel
+        )
+        
+        this.$emit('atualizar', tarefaAtualizada)
         this.dialogDetalhes = false
         
         this.$emit('show-snackbar', {
@@ -266,24 +295,43 @@ export default {
           message: 'Erro ao salvar tarefa: ' + error.message,
           color: 'error'
         })
+      } finally {
+        this.carregando = false
       }
     },
-    
-    async atualizarTarefaAPI(tarefa) {
-      const response = await fetch(`http://localhost:8080/api/listas/${this.lista.id}/tarefas/${tarefa.idTarefa}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(tarefa)
-      })
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+
+    async toggleConcluida() {
+      this.carregando = true
+      try {
+        const tarefaAtualizada = {
+          ...this.tarefa,
+          concluida: !this.tarefa.concluida,
+          // Adiciona data de conclusão se estiver marcando como concluída
+          dataConclusaoTarefa: !this.tarefa.concluida ? new Date().toISOString() : null
+        }
+        
+        // Chama o service para atualizar a tarefa
+        const resposta = await apiService.atualizarTarefa(
+          this.lista.id,
+          tarefaAtualizada.idTarefa,
+          tarefaAtualizada
+        )
+        
+        this.$emit('atualizar', resposta)
+        
+        this.$emit('show-snackbar', {
+          message: `Tarefa ${tarefaAtualizada.concluida ? 'concluída' : 'reaberta'} com sucesso!`,
+          color: 'success'
+        })
+      } catch (error) {
+        this.$emit('show-snackbar', {
+          message: 'Erro ao atualizar tarefa: ' + error.message,
+          color: 'error'
+        })
+      } finally {
+        this.carregando = false
       }
-      
-      return await response.json()
-    }
+    },
   },
   emits: ['drag-start', 'atualizar', 'show-snackbar']
 }
@@ -337,5 +385,26 @@ export default {
 .task-meta {
   font-size: 0.75rem;
   color: rgb(var(--v-theme-on-surface-variant));
+}
+.task-card {
+  position: relative;
+}
+
+.task-card:after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.7);
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+
+.task-card.carregando:after {
+  opacity: 1;
 }
 </style>
