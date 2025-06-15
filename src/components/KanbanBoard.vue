@@ -32,6 +32,15 @@
                 Tarefas: {{ totalTarefas }} ({{ tarefasConcluidas }} concluídas)
               </v-chip>
               <v-btn
+                @click="abrirDialogNovaLista"
+                color="success"
+                class="ml-2"
+                variant="elevated"
+              >
+                <v-icon start>mdi-plus</v-icon>
+                Nova Lista
+              </v-btn>
+              <v-btn
                 @click="carregarDados"
                 :loading="loading"
                 icon="mdi-refresh"
@@ -102,7 +111,93 @@
       />
     </v-row>
 
-    <!-- Dialogs -->
+    <!-- Dialog Nova Lista -->
+    <v-dialog v-model="dialogNovaLista" max-width="700">
+      <v-card>
+        <v-card-title>
+          <v-icon class="mr-2">mdi-plus-circle</v-icon>
+          Criar Nova Lista
+        </v-card-title>
+        <v-card-text>
+          <v-form v-model="formListaValido" @submit.prevent="criarLista">
+            <v-text-field
+              v-model="novaLista.nomeLista"
+              label="Nome da Lista"
+              required
+              :rules="[v => !!v || 'Nome da lista é obrigatório']"
+              hint="Ex: Lista de Desenvolvimento Backend"
+            ></v-text-field>
+            
+            <v-text-field
+              v-model="novaLista.criadorId"
+              label="ID do Criador"
+              required
+              :rules="[v => !!v || 'ID do criador é obrigatório']"
+              hint="Ex: 683ccbd041f2504551138a8e"
+            ></v-text-field>
+            
+            <v-text-field
+              v-model="tagInput"
+              label="Tags"
+              @keydown.enter.prevent="adicionarTag"
+              hint="Digite uma tag e pressione Enter para adicionar"
+            ></v-text-field>
+            
+            <div v-if="novaLista.tags.length > 0" class="mb-4">
+              <v-chip
+                v-for="(tag, index) in novaLista.tags"
+                :key="index"
+                closable
+                @click:close="removerTag(index)"
+                class="mr-2 mb-2"
+                color="primary"
+                variant="outlined"
+              >
+                {{ tag }}
+              </v-chip>
+            </div>
+
+            <v-divider class="my-4"></v-divider>
+            <h4 class="mb-3">Tarefa Inicial (Opcional)</h4>
+            
+            <v-text-field
+              v-model="tarefaInicial.descricao"
+              label="Descrição da Tarefa"
+              hint="Ex: Criar endpoint de login"
+            ></v-text-field>
+            
+            <v-select
+              v-model="tarefaInicial.prioridade"
+              :items="prioridades"
+              label="Prioridade"
+              item-title="title"
+              item-value="value"
+            ></v-select>
+            
+            <v-text-field
+              v-model="tarefaInicial.responsavelId"
+              label="ID do Responsável"
+              hint="Ex: 66596f44215cb34b048d623f"
+            ></v-text-field>
+          </v-form>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn @click="dialogNovaLista = false">Cancelar</v-btn>
+          <v-btn
+            color="success"
+            @click="criarLista"
+            :loading="salvandoLista"
+            :disabled="!formListaValido"
+          >
+            <v-icon start>mdi-plus</v-icon>
+            Criar Lista
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Dialog Nova Tarefa -->
     <v-dialog v-model="dialogNovaTarefa" max-width="600">
       <v-card>
         <v-card-title>
@@ -182,6 +277,25 @@ export default {
       loading: false,
       erro: null,
       listaAtual: {},
+      
+      // Dialog Nova Lista
+      dialogNovaLista: false,
+      formListaValido: false,
+      salvandoLista: false,
+      tagInput: '',
+      novaLista: {
+        nomeLista: '',
+        criadorId: '',
+        colaboradoresIds: [],
+        tags: []
+      },
+      tarefaInicial: {
+        descricao: '',
+        prioridade: 2,
+        responsavelId: ''
+      },
+      
+      // Dialog Nova Tarefa
       dialogNovaTarefa: false,
       formValido: false,
       salvandoTarefa: false,
@@ -191,6 +305,7 @@ export default {
         responsavelId: '',
         concluida: false
       },
+      
       prioridades: [
         { title: 'Alta', value: 1 },
         { title: 'Média', value: 2 },
@@ -239,6 +354,74 @@ export default {
       }
     },
     
+    // Métodos para Nova Lista
+    abrirDialogNovaLista() {
+      this.novaLista = {
+        nomeLista: '',
+        criadorId: '',
+        colaboradoresIds: [],
+        tags: []
+      };
+      this.tarefaInicial = {
+        descricao: '',
+        prioridade: 2,
+        responsavelId: ''
+      };
+      this.tagInput = '';
+      this.dialogNovaLista = true;
+    },
+    
+    adicionarTag() {
+      if (this.tagInput.trim() && !this.novaLista.tags.includes(this.tagInput.trim())) {
+        this.novaLista.tags.push(this.tagInput.trim());
+        this.tagInput = '';
+      }
+    },
+    
+    removerTag(index) {
+      this.novaLista.tags.splice(index, 1);
+    },
+    
+    async criarLista() {
+      this.salvandoLista = true;
+      try {
+        const listaParaCriar = {
+          ...this.novaLista,
+          tarefas: []
+        };
+        
+        // Se há uma tarefa inicial, adiciona ela
+        if (this.tarefaInicial.descricao.trim()) {
+          const tarefa = {
+            idTarefa: `task${Date.now()}`,
+            descricao: this.tarefaInicial.descricao,
+            concluida: false,
+            dataCriacaoTarefa: new Date().toISOString(),
+            responsavelId: this.tarefaInicial.responsavelId || this.novaLista.criadorId,
+            prioridade: this.tarefaInicial.prioridade
+          };
+          listaParaCriar.tarefas.push(tarefa);
+        }
+        
+        const novaListaCriada = await apiService.criarLista(listaParaCriar);
+        
+        // Atualiza a lista atual com a nova lista criada
+        this.listaAtual = novaListaCriada;
+        
+        this.dialogNovaLista = false;
+        this.mostrarSnackbar('Lista criada com sucesso!', 'success', 'mdi-check-circle');
+      } catch (error) {
+        this.mostrarSnackbar(
+          `Erro ao criar lista: ${error.message}`,
+          'error',
+          'mdi-alert-circle'
+        );
+      } finally {
+        this.salvandoLista = false;
+      }
+    },
+    
+    // Métodos existentes
     async moverTarefa({ tarefaId, novoStatus, colunaDestino }) {
       try {
         const tarefa = this.listaAtual.tarefas.find(t => t.idTarefa === tarefaId);
