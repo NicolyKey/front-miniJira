@@ -255,24 +255,6 @@ export default {
       }
     },
     
-    // async salvarEdicao() {
-    //   try {
-    //     await this.atualizarTarefaAPI(this.tarefaEditavel)
-    //     this.$emit('atualizar', this.tarefaEditavel)
-    //     this.dialogDetalhes = false
-        
-    //     this.$emit('show-snackbar', {
-    //       message: 'Tarefa atualizada com sucesso!',
-    //       color: 'success'
-    //     })
-    //   } catch (error) {
-    //     this.$emit('show-snackbar', {
-    //       message: 'Erro ao salvar tarefa: ' + error.message,
-    //       color: 'error'
-    //     })
-    //   }
-    // },
-    
     async salvarEdicao() {
       this.carregando = true
       try {
