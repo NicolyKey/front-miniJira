@@ -39,6 +39,7 @@
                 <v-icon start>mdi-plus</v-icon>
                 Nova Lista
               </v-btn>
+               <DialogNewList ref="dialogNovaLista" />
               <v-btn
                 @click="carregarDados"
                 :loading="loading"
@@ -107,11 +108,14 @@
 <script>
 import KanbanColumn from './KanbanColumn.vue';
 import apiService from '../services/api.service';
+import DialogNewList from './DialogNewList.vue';
+
 
 export default {
   name: 'KanbanBoard',
   components: {
-    KanbanColumn
+    KanbanColumn,
+    DialogNewList  
   },
   data() {
     return {
@@ -150,6 +154,11 @@ export default {
     await this.carregarDados();
   },
   methods: {
+
+     abrirDialogNovaLista() {
+      this.$refs.dialogNovaLista.dialog = true;  // Corrigido o nome da ref
+    },
+    
     async carregarDados() {
       this.loading = true;
       this.erro = null;
@@ -166,7 +175,7 @@ export default {
         this.loading = false;
       }
     },
-  
+
     async moverTarefa({ tarefaId, novoStatus, colunaDestino }) {
       try {
         const tarefa = this.listaAtual.tarefas.find(t => t.idTarefa === tarefaId);
@@ -234,7 +243,6 @@ export default {
       };
       this.dialogNovaTarefa = true;
     },
-  
     
     mostrarSnackbar(message, color = 'success', icon = 'mdi-information') {
       this.snackbar = {
