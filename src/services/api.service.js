@@ -16,6 +16,17 @@ const apiService = {
     }
   },
 
+  async deletarLista(_listaId){
+    try{
+      const response = await fetch(`${API_BASE_URL}/listar/${_listaId}`);
+      if(!response.ok){
+        throw new Error(`HTTP ${response.status} : ${response.statusText}`)
+      }
+    }catch(error){
+      console.error('erro ao deletar lista:', error)
+    }
+  },
+
   async criarLista(novaLista) {
     try {
       const response = await fetch(`${API_BASE_URL}/listas`, {
@@ -78,6 +89,8 @@ const apiService = {
       throw error;
     }
   }
+
+
 };
 
 export default apiService;

@@ -6,7 +6,7 @@
           <v-card-title class="d-flex text-black align-center">
             <v-icon class="mr-2" size="32">mdi-view-dashboard</v-icon>
             <div>
-              <h2 class="text-black">{{ listaAtual.nomeLista || 'Carregando...' }}</h2>
+              <h2 class="text-black">{{ listaAtual.nomeLista || 'Kaban board' }}</h2>
               <div class="d-flex align-center mt-1">
                 <v-chip
                   v-for="tag in listaAtual.tags"
@@ -158,7 +158,7 @@ export default {
      abrirDialogNovaLista() {
       this.$refs.dialogNovaLista.dialog = true;  // Corrigido o nome da ref
     },
-    
+
     async carregarDados() {
       this.loading = true;
       this.erro = null;
